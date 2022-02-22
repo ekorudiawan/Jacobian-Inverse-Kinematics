@@ -68,16 +68,13 @@ def jacobian_matrix(thetas, eps=0.01):
         thetas[i] -= eps
     return J
 
-def jacobian_plus(J):
-    return np.linalg.pinv(J.T.dot(J)).dot(J.T)
-
 def inverse_kinematics(debug=True, x_target=0, y_target=0, z_target=0, max_iter=100, alpha=0.001):
     thetas = np.random.rand(2)
+    J = jacobian_matrix(thetas=thetas)
+    J_plus = np.linalg.pinv(J)
     for i in range(max_iter):
         _0T2 = forward_kinematics(thetas=thetas)
         x_current, y_current, z_current, _, _, _ = transformation_matrix_to_xyzrpy(_0T2)
-        J = jacobian_matrix(thetas=thetas)
-        J_plus = jacobian_plus(J)
         delta_pose = np.array([x_target-x_current, y_target-y_current, z_target-z_current])
         delta_thetas = J_plus.dot(delta_pose)
         thetas += alpha * delta_thetas
@@ -108,13 +105,15 @@ def main():
     target_pose = forward_kinematics(thetas=random_thetas)
     target_x, target_y, _, _, _, _ = transformation_matrix_to_xyzrpy(target_pose)
     print("Target (x,y) : ", target_x, target_y)
-    thetas = inverse_kinematics(debug=False, x_target=target_x, y_target=target_y, max_iter=100, alpha=0.1)
+    thetas = inverse_kinematics(debug=False, x_target=target_x, y_target=target_y, max_iter=500, alpha=0.1)
     print(thetas)
     result_pose = forward_kinematics(thetas=thetas)
     result_x, result_y, _, _, _, _ = transformation_matrix_to_xyzrpy(result_pose)
     print("Result (x,y) : ", result_x, result_y)
     error = calc_pose_error(target_pose, result_pose)
     print("Error : ", error)
+    if error > 1:
+        print("Fail")
 
 if __name__ == "__main__":
     main()
